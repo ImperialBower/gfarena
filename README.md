@@ -1,3 +1,9 @@
+[![Deploy to GitHub Pages](https://github.com/ImperialBower/gfarena/actions/workflows/deploy.yml/badge.svg)](https://github.com/ImperialBower/gfarena/actions/workflows/deploy.yml)
+[![Playwright Tests](https://github.com/ImperialBower/gfarena/actions/workflows/playwright.yml/badge.svg)](https://github.com/ImperialBower/gfarena/actions/workflows/playwright.yml)
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square)](LICENSE-APACHE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE-MIT)
+[![AI-BOM](https://img.shields.io/badge/AI--BOM-Claude%20Sonnet%204.6-blueviolet)](AI-BOM.md)
+
 # gfarena
 
 A browser-based, single-player Go Fish game where one human faces three AI
