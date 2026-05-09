@@ -264,15 +264,15 @@ dependencies = [
 
 [[package]]
 name = "gfarena0-web"
-version = "0.1.0"
+version = "0.0.2"
 dependencies = [
  "gfcore",
 ]
 
 [[package]]
 name = "gfcore"
-version = "0.0.1"
-source = "git+https://github.com/ImperialBower/gfcore#68b4e4ea0e2a07731edbc216e22c3509caca1890"
+version = "0.0.2"
+source = "git+https://github.com/ImperialBower/gfcore#b09a52c7c6d120553f0e3d0a6da592fb80eccdb6"
 dependencies = [
  "cardpack",
  "console_error_panic_hook",

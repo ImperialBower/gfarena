@@ -1,6 +1,6 @@
 [package]
 name        = "gfarena0-web"
-version     = "0.1.0"
+version     = "0.0.2"
 edition     = "2024"
 rust-version = "1.85"
 description = "Go Fish in the browser — human vs bots, powered by gfcore."
@@ -11,7 +11,7 @@ repository = "https://github.com/ImperialBower/gfarena.git"
 crate-type = ["cdylib"]
 
 [dependencies]
-gfcore = { version = "0.0.1", features = ["wasm", "history"] }
+gfcore = { version = "0.0.2", features = ["wasm", "history"] }
 
 [patch.crates-io]
 gfcore = { git = "https://github.com/ImperialBower/gfcore" }
