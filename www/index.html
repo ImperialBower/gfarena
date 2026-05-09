@@ -34,7 +34,8 @@
       flex-wrap: wrap;
       justify-content: center;
     }
-    #sc-version { color: #666; }
+    #sc-version { color: #666; text-decoration: none; }
+    #sc-version:hover { color: #999; }
     #score-bar strong { color: #f0d060; }
     #new-game-btn {
       font-size: 11px;
@@ -218,12 +219,20 @@
       cursor: pointer;
     }
     #play-again-btn:hover { background: #243954; }
+
+    footer {
+      margin-top: auto;
+      padding: 12px;
+      font-size: 12px;
+    }
+    footer a { color: #555; text-decoration: none; }
+    footer a:hover { color: #888; }
   </style>
 </head>
 <body>
 
   <div id="score-bar">
-    <span id="sc-version">gfarena0</span>
+    <a id="sc-version" href="https://github.com/ImperialBower/gfarena" target="_blank" rel="noopener">gfarena0</a>
     <span>Draw pile: <strong id="sc-draw-pile">--</strong></span>
     <button id="new-game-btn">New Game</button>
   </div>
@@ -276,6 +285,10 @@
       <button id="play-again-btn">Play Again</button>
     </div>
   </div>
+
+  <footer>
+    <a href="https://github.com/ImperialBower/gfarena" target="_blank" rel="noopener">github.com/ImperialBower/gfarena</a>
+  </footer>
 
   <script type="module">
     import init, { version, new_human_vs_bots_game, get_human_state, act, step_bot }

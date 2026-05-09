@@ -14,4 +14,4 @@ crate-type = ["cdylib"]
 gfcore = { version = "0.0.1", features = ["wasm", "history"] }
 
 [patch.crates-io]
-gfcore = { path = "../gfcore" }
+gfcore = { git = "https://github.com/ImperialBower/gfcore" }
