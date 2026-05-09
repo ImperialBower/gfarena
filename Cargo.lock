@@ -267,6 +267,7 @@ name = "gfarena0-web"
 version = "0.0.4"
 dependencies = [
  "gfcore",
+ "wasm-bindgen",
 ]
 
 [[package]]
