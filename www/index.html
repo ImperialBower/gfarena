@@ -75,7 +75,7 @@
     .bot-panel.active-turn { border-color: #f0d060; }
     .bot-name { font-size: 14px; font-weight: 600; color: #ddd; margin-bottom: 4px; }
     .bot-hand-size { font-size: 13px; color: #aaa; margin-bottom: 4px; }
-    .bot-books { font-size: 13px; color: #88bbff; letter-spacing: 2px; min-height: 1.2em; }
+    .bot-books { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; min-height: 1.2em; align-items: center; }
 
     /* Human area */
     #human-area {
@@ -88,20 +88,61 @@
     }
     #hand-label { font-size: 13px; color: #888; align-self: flex-start; }
     #hand-cards { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
-    .rank-btn {
-      background: #1a1a3a;
-      border: 2px solid #3a3a6a;
-      color: #ddd;
+
+    /* Playing card faces */
+    .card-display {
+      background: #fff;
       border-radius: 6px;
-      padding: 8px 14px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.15s, border-color 0.15s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: Georgia, serif;
+      font-weight: bold;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+      user-select: none;
+      line-height: 1.15;
     }
-    .rank-btn:hover:not(:disabled) { background: #22224a; border-color: #5a5a9a; }
-    .rank-btn.selected { background: #2a2a10; border-color: #f0d060; color: #f0d060; }
-    .rank-btn:disabled { opacity: 0.35; cursor: default; }
+    .card-display.suit-s { color: #1a1a1a; }
+    .card-display.suit-h { color: #cc1111; }
+    .card-display.suit-d { color: #1a6bbf; }
+    .card-display.suit-c { color: #0c8a3a; }
+    .cd-rank { font-size: 20px; }
+    .cd-suit { font-size: 16px; }
+
+    /* Hand cards are clickable */
+    #hand-cards .card-display {
+      width: 50px;
+      height: 70px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color 0.15s, transform 0.12s;
+    }
+    #hand-cards .card-display:hover { transform: translateY(-4px); }
+    #hand-cards .card-display.selected {
+      border-color: #f0d060;
+      transform: translateY(-6px);
+    }
+
+    /* Book cards — one per completed set */
+    .book-card {
+      background: #fff;
+      border: 1.5px solid #c8a84e;
+      border-radius: 5px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: Georgia, serif;
+      font-weight: bold;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+      width: 36px;
+      height: 50px;
+      line-height: 1.1;
+      color: #1a1a1a;
+    }
+    .bc-rank { font-size: 17px; }
+    .bc-suits { font-size: 8px; letter-spacing: 0.5px; color: #555; }
 
     #ask-section {
       display: flex;
@@ -125,8 +166,8 @@
     .target-btn:hover:not(:disabled) { background: #223322; }
     .target-btn:disabled { opacity: 0.35; cursor: default; }
 
-    #books-section { font-size: 13px; color: #888; }
-    #human-books { color: #88bbff; letter-spacing: 2px; margin-left: 4px; }
+    #books-section { font-size: 13px; color: #888; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    #human-books { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
 
     #draw-btn {
       background: #1a2a3e;
@@ -215,7 +256,8 @@
     </div>
 
     <div id="books-section">
-      Your books: <span id="human-books">--</span>
+      <span>Your books:</span>
+      <div id="human-books"></div>
     </div>
 
     <button id="draw-btn" style="display:none">Go Fish - Draw a card</button>
@@ -346,8 +388,13 @@
         var panel = document.getElementById('bot-' + (i - 1));
         panel.querySelector('.bot-name').textContent = p.name;
         panel.querySelector('.bot-hand-size').textContent = '✋ ' + p.hand_size;
-        panel.querySelector('.bot-books').textContent =
-          p.completed_book_ranks.length ? p.completed_book_ranks.join('  ') : '--';
+        var booksEl = panel.querySelector('.bot-books');
+        booksEl.textContent = '';
+        if (p.completed_book_ranks.length) {
+          p.completed_book_ranks.forEach(function(r) { booksEl.appendChild(makeBookCard(r)); });
+        } else {
+          booksEl.textContent = '--';
+        }
         if (state.current_player === i) {
           panel.classList.add('active-turn');
         } else {
@@ -372,46 +419,72 @@
       }
 
       var human = state.players[0];
-      document.getElementById('human-books').textContent =
-        human.completed_book_ranks.length
-          ? human.completed_book_ranks.join('  ')
-          : '--';
+      var humanBooksEl = document.getElementById('human-books');
+      humanBooksEl.textContent = '';
+      human.completed_book_ranks.forEach(function(r) { humanBooksEl.appendChild(makeBookCard(r)); });
+    }
+
+    var SUIT_CHAR = { S: '♠', H: '♥', D: '♦', C: '♣' };
+    var SUIT_CLASS = { S: 'suit-s', H: 'suit-h', D: 'suit-d', C: 'suit-c' };
+
+    function makeBookCard(rankStr) {
+      var label = rankStr === 'T' ? '10' : rankStr;
+      var el = document.createElement('div');
+      el.className = 'book-card';
+      var rankSpan = document.createElement('span');
+      rankSpan.className = 'bc-rank';
+      rankSpan.textContent = label;
+      var suitSpan = document.createElement('span');
+      suitSpan.className = 'bc-suits';
+      suitSpan.textContent = '♠♥♦♣';
+      el.appendChild(rankSpan);
+      el.appendChild(suitSpan);
+      return el;
     }
 
     function renderHand(hand) {
       var container = document.getElementById('hand-cards');
-      container.textContent = '';  // clear children safely
+      container.textContent = '';
       if (!hand) return;
 
-      // Group cards by rank index (hand is a JSON array of card objects)
-      var groups = {};
-      for (var i = 0; i < hand.length; i++) {
-        var card = hand[i];
-        var idx = card.rank.index;
-        if (!groups[idx]) groups[idx] = { rank: card.rank, count: 0 };
-        groups[idx].count++;
-      }
-
-      // Sort highest weight first (A, K, Q, ... 2)
-      var sorted = Object.values(groups).sort(function(a, b) {
-        return b.rank.weight - a.rank.weight;
+      // Sort highest rank first, then by suit for stable order within a rank
+      var sorted = hand.slice().sort(function(a, b) {
+        var r = b.rank.weight - a.rank.weight;
+        return r !== 0 ? r : a.suit.weight - b.suit.weight;
       });
 
-      sorted.forEach(function(item) {
-        var btn = document.createElement('button');
-        btn.className = 'rank-btn';
-        if (selectedRank && selectedRank.index === item.rank.index) {
-          btn.classList.add('selected');
-        }
-        btn.textContent = item.rank.index + ' x' + item.count;
-        btn.addEventListener('click', function() {
-          selectedRank = item.rank;
+      sorted.forEach(function(card) {
+        var rankLabel = card.rank.index === 'T' ? '10' : card.rank.index;
+        var suitIdx = card.suit.index;
+        var suitChar = SUIT_CHAR[suitIdx] || suitIdx;
+        var suitClass = SUIT_CLASS[suitIdx] || 'suit-s';
+        var isSelected = selectedRank && selectedRank.index === card.rank.index;
+
+        var el = document.createElement('div');
+        el.className = 'card-display ' + suitClass;
+        if (isSelected) el.classList.add('selected');
+
+        var rankSpan = document.createElement('span');
+        rankSpan.className = 'cd-rank';
+        rankSpan.textContent = rankLabel;
+
+        var suitSpan = document.createElement('span');
+        suitSpan.className = 'cd-suit';
+        suitSpan.textContent = suitChar;
+
+        el.appendChild(rankSpan);
+        el.appendChild(suitSpan);
+
+        var rankRef = card.rank;
+        el.addEventListener('click', function() {
+          selectedRank = rankRef;
           renderHand(hand);
           document.querySelectorAll('.target-btn').forEach(function(b) {
             b.disabled = false;
           });
         });
-        container.appendChild(btn);
+
+        container.appendChild(el);
       });
     }
 
