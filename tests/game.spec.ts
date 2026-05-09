@@ -28,27 +28,27 @@ test.describe('gfarena0-web smoke tests', () => {
     expect(bot0).toBe('Harriet');
   });
 
-  test('human hand shows rank buttons on their turn', async ({ page }) => {
+  test('human hand shows card-display elements on their turn', async ({ page }) => {
     await page.goto('/');
-    await page.waitForSelector('#hand-cards .rank-btn', { timeout: 15_000 });
-    const count = await page.locator('#hand-cards .rank-btn').count();
+    await page.waitForSelector('#hand-cards .card-display', { timeout: 15_000 });
+    const count = await page.locator('#hand-cards .card-display').count();
     expect(count).toBeGreaterThan(0);
   });
 
-  test('clicking rank enables target buttons', async ({ page }) => {
+  test('clicking card enables target buttons', async ({ page }) => {
     await page.goto('/');
-    await page.waitForSelector('#hand-cards .rank-btn', { timeout: 15_000 });
+    await page.waitForSelector('#hand-cards .card-display', { timeout: 15_000 });
 
     await expect(page.locator('#target-1')).toBeDisabled();
-    await page.locator('#hand-cards .rank-btn').first().click();
+    await page.locator('#hand-cards .card-display').first().click();
     await expect(page.locator('#target-1')).toBeEnabled();
   });
 
   test('submitting ask updates status line', async ({ page }) => {
     await page.goto('/');
-    await page.waitForSelector('#hand-cards .rank-btn', { timeout: 15_000 });
+    await page.waitForSelector('#hand-cards .card-display', { timeout: 15_000 });
 
-    await page.locator('#hand-cards .rank-btn').first().click();
+    await page.locator('#hand-cards .card-display').first().click();
     await page.locator('#target-1').click();
 
     await page.waitForFunction(
@@ -74,7 +74,7 @@ test.describe('gfarena0-web smoke tests', () => {
     // Each evaluate call checks state AND performs the action atomically so
     // there is no CDP round-trip between the rank click and the target click.
     await page.goto('/?fast');
-    await page.waitForSelector('#hand-cards .rank-btn', { timeout: 15_000 });
+    await page.waitForSelector('#hand-cards .card-display', { timeout: 15_000 });
 
     let askCount = 0, drawCount = 0, waitCount = 0;
     for (let move = 0; move < 2000; move++) {
@@ -87,10 +87,11 @@ test.describe('gfarena0-web smoke tests', () => {
         const draw = document.getElementById('draw-btn') as HTMLButtonElement | null;
         if (draw?.style.display === 'block') { draw.click(); return 'draw'; }
 
-        const hand = document.getElementById('hand-section') as HTMLElement | null;
-        const rank = document.querySelector('#hand-cards .rank-btn') as HTMLElement | null;
-        if (hand?.style.display === 'block' && rank) {
-          rank.click();
+        // ask-section is flex only when it is the human's ask turn
+        const askSection = document.getElementById('ask-section') as HTMLElement | null;
+        const card = document.querySelector('#hand-cards .card-display') as HTMLElement | null;
+        if (askSection?.style.display === 'flex' && card) {
+          card.click();
           const t = document.getElementById('target-' + tIdx) as HTMLButtonElement | null;
           if (t && !t.disabled) t.click();
           return 'ask';
@@ -107,10 +108,10 @@ test.describe('gfarena0-web smoke tests', () => {
       waitCount++;
       await page.waitForFunction(
         () => {
-          const h = (document.getElementById('hand-section') as HTMLElement | null)?.style.display === 'block';
+          const a = (document.getElementById('ask-section') as HTMLElement | null)?.style.display === 'flex';
           const d = (document.getElementById('draw-btn') as HTMLElement | null)?.style.display === 'block';
           const o = (document.getElementById('game-over') as HTMLElement | null)?.style.display === 'flex';
-          return h || d || o;
+          return a || d || o;
         },
         { polling: 100, timeout: 10_000 }
       );
@@ -121,7 +122,7 @@ test.describe('gfarena0-web smoke tests', () => {
       const st = (window as any).state;
       return {
         over:       (document.getElementById('game-over') as HTMLElement | null)?.style.display,
-        hand:       (document.getElementById('hand-section') as HTMLElement | null)?.style.display,
+        askSection: (document.getElementById('ask-section') as HTMLElement | null)?.style.display,
         draw:       (document.getElementById('draw-btn') as HTMLElement | null)?.style.display,
         drawPile:   document.getElementById('sc-draw-pile')?.textContent,
         phase:      st?.phase,

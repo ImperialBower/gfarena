@@ -1,6 +1,6 @@
 [package]
 name        = "gfarena0-web"
-version     = "0.0.2"
+version     = "0.0.3"
 edition     = "2024"
 rust-version = "1.85"
 description = "Go Fish in the browser — human vs bots, powered by gfcore."

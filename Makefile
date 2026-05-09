@@ -1,6 +1,6 @@
-.PHONY: help build serve kill build-release clean install-playwright test test-ui default
+.PHONY: help build serve kill build-release clean install-playwright test test-ui default ayce
 
-default: build
+default: ayce
 
 help:
 	@echo "gfarena0-web — available targets:"
@@ -31,12 +31,17 @@ clean:
 	cargo clean
 	rm -rf www/pkg
 
-install-playwright:
+node_modules: package.json
 	npm install
+
+install-playwright: node_modules
 	npx playwright install chromium
 
-test: build
+test: build node_modules
 	npx playwright test
 
-test-ui: build
+test-ui: build node_modules
 	npx playwright test --ui
+
+# All You Can Eat - clean, build, and test
+ayce: clean build test
