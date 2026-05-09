@@ -77,11 +77,12 @@ test.describe('gfarena0-web smoke tests', () => {
     await page.waitForSelector('#hand-cards .card-display', { timeout: 15_000 });
 
     let askCount = 0, drawCount = 0, waitCount = 0;
-    for (let move = 0; move < 2000; move++) {
-      // Rotate through targets 1→2→3 so the human eventually finds any bot
-      // that holds the requested rank, avoiding infinite GoFish against one bot.
+    for (let move = 0; move < 5000; move++) {
+      // Rotate through both cards and targets so the human tries every rank
+      // against every bot, avoiding an infinite GoFish on one unlucky rank.
       const targetIdx = (move % 3) + 1;
-      const action = await page.evaluate((tIdx: number) => {
+      const cardIdx   = Math.floor(move / 3) % 7;  // change card every 3 moves
+      const action = await page.evaluate(([tIdx, cIdx]: number[]) => {
         if ((document.getElementById('game-over') as HTMLElement | null)?.style.display === 'flex') return 'over';
 
         const draw = document.getElementById('draw-btn') as HTMLButtonElement | null;
@@ -89,7 +90,8 @@ test.describe('gfarena0-web smoke tests', () => {
 
         // ask-section is flex only when it is the human's ask turn
         const askSection = document.getElementById('ask-section') as HTMLElement | null;
-        const card = document.querySelector('#hand-cards .card-display') as HTMLElement | null;
+        const cards = document.querySelectorAll('#hand-cards .card-display');
+        const card = cards[cIdx % Math.max(cards.length, 1)] as HTMLElement | null;
         if (askSection?.style.display === 'flex' && card) {
           card.click();
           const t = document.getElementById('target-' + tIdx) as HTMLButtonElement | null;
@@ -98,7 +100,7 @@ test.describe('gfarena0-web smoke tests', () => {
         }
 
         return 'wait';
-      }, targetIdx);
+      }, [targetIdx, cardIdx]);
 
       if (action === 'over') break;
       if (action === 'ask') { askCount++; continue; }
@@ -130,7 +132,7 @@ test.describe('gfarena0-web smoke tests', () => {
         status:     (document.getElementById('status-msg') as HTMLElement | null)?.textContent,
       };
     });
-    console.log(`moves: ask=${askCount} draw=${drawCount} wait=${waitCount}`, snap);
+    console.log(`moves: ask=${askCount} draw=${drawCount} wait=${waitCount} total=${askCount+drawCount+waitCount}`, snap);
 
     if (jsErrors.length) console.warn('Browser JS errors during game:', jsErrors);
 

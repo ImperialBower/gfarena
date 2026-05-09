@@ -232,7 +232,7 @@
 <body>
 
   <div id="score-bar">
-    <a id="sc-version" href="https://github.com/ImperialBower/gfarena" target="_blank" rel="noopener">gfarena0</a>
+    <a id="sc-version" href="https://github.com/ImperialBower/gfarena" target="_blank" rel="noopener">gfarena0 v0.0.3</a>
     <span>Draw pile: <strong id="sc-draw-pile">--</strong></span>
     <button id="new-game-btn">New Game</button>
   </div>
@@ -291,7 +291,7 @@
   </footer>
 
   <script type="module">
-    import init, { version, new_human_vs_bots_game, get_human_state, act, step_bot }
+    import init, { new_human_vs_bots_game, get_human_state, act, step_bot }
       from './pkg/gfarena0_web.js';
 
     // ── State ────────────────────────────────────────────────────────────────
@@ -305,7 +305,6 @@
 
     async function main() {
       await init();
-      document.getElementById('sc-version').textContent = 'gfarena0 v' + version();
       document.getElementById('new-game-btn').addEventListener('click', startGame);
       document.getElementById('draw-btn').addEventListener('click', onDraw);
       document.getElementById('play-again-btn').addEventListener('click', startGame);
