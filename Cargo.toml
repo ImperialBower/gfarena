@@ -1,0 +1,14 @@
+[package]
+name        = "gfarena0-web"
+version     = "0.1.0"
+edition     = "2024"
+rust-version = "1.85"
+description = "Go Fish in the browser — human vs bots, powered by gfcore."
+license     = "GPL-3.0-or-later"
+repository = "https://github.com/ImperialBower/gfarena.git"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+gfcore = { version = "0.0.1", features = ["wasm", "history"] }

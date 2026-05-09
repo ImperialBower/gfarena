@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <title>gfarena0 - Go Fish</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { color-scheme: dark; }
+    body {
+      background: #0d0d1a;
+      color: #ccc;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 8px;
+      gap: 8px;
+    }
+
+    /* Score bar */
+    #score-bar {
+      display: flex;
+      gap: 20px;
+      padding: 6px 20px;
+      background: #1a1a2e;
+      border: 1px solid #2a2a44;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #aaa;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    #sc-version { color: #666; }
+    #score-bar strong { color: #f0d060; }
+    #new-game-btn {
+      font-size: 11px;
+      padding: 2px 10px;
+      background: #1a2a3e;
+      border: 1px solid #4a7bb9;
+      color: #aad4ff;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #new-game-btn:hover { background: #243954; }
+
+    /* Status line */
+    #status-msg {
+      font-size: 14px;
+      color: #bbb;
+      min-height: 1.4em;
+      text-align: center;
+      padding: 2px 8px;
+    }
+
+    /* Bot panels */
+    #bots {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .bot-panel {
+      background: #12122a;
+      border: 1px solid #2a2a44;
+      border-radius: 8px;
+      padding: 10px 14px;
+      min-width: 110px;
+      text-align: center;
+      transition: border-color 0.2s;
+    }
+    .bot-panel.active-turn { border-color: #f0d060; }
+    .bot-name { font-size: 14px; font-weight: 600; color: #ddd; margin-bottom: 4px; }
+    .bot-hand-size { font-size: 13px; color: #aaa; margin-bottom: 4px; }
+    .bot-books { font-size: 13px; color: #88bbff; letter-spacing: 2px; min-height: 1.2em; }
+
+    /* Human area */
+    #human-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      max-width: 520px;
+    }
+    #hand-label { font-size: 13px; color: #888; align-self: flex-start; }
+    #hand-cards { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+    .rank-btn {
+      background: #1a1a3a;
+      border: 2px solid #3a3a6a;
+      color: #ddd;
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .rank-btn:hover:not(:disabled) { background: #22224a; border-color: #5a5a9a; }
+    .rank-btn.selected { background: #2a2a10; border-color: #f0d060; color: #f0d060; }
+    .rank-btn:disabled { opacity: 0.35; cursor: default; }
+
+    #ask-section {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      font-size: 13px;
+      color: #888;
+    }
+    .target-btn {
+      background: #1a2a1a;
+      border: 1px solid #3a6a3a;
+      color: #aaddaa;
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .target-btn:hover:not(:disabled) { background: #223322; }
+    .target-btn:disabled { opacity: 0.35; cursor: default; }
+
+    #books-section { font-size: 13px; color: #888; }
+    #human-books { color: #88bbff; letter-spacing: 2px; margin-left: 4px; }
+
+    #draw-btn {
+      background: #1a2a3e;
+      border: 2px solid #4a7bb9;
+      color: #aad4ff;
+      border-radius: 8px;
+      padding: 10px 24px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    #draw-btn:hover { background: #243954; }
+
+    /* Game-over overlay */
+    #game-over {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+    #game-over-box {
+      background: #1a1a2e;
+      border: 1px solid #4a4a7a;
+      border-radius: 12px;
+      padding: 32px 40px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    #game-over-title { font-size: 28px; color: #f0d060; }
+    #final-scores { font-size: 14px; color: #aaa; line-height: 1.8; }
+    #play-again-btn {
+      background: #1a2a3e;
+      border: 1px solid #4a7bb9;
+      color: #aad4ff;
+      border-radius: 6px;
+      padding: 8px 24px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    #play-again-btn:hover { background: #243954; }
+  </style>
+</head>
+<body>
+
+  <div id="score-bar">
+    <span id="sc-version">gfarena0</span>
+    <span>Draw pile: <strong id="sc-draw-pile">--</strong></span>
+    <button id="new-game-btn">New Game</button>
+  </div>
+
+  <div id="status-msg">Initialising...</div>
+
+  <div id="bots">
+    <div class="bot-panel" id="bot-0">
+      <div class="bot-name">--</div>
+      <div class="bot-hand-size"></div>
+      <div class="bot-books"></div>
+    </div>
+    <div class="bot-panel" id="bot-1">
+      <div class="bot-name">--</div>
+      <div class="bot-hand-size"></div>
+      <div class="bot-books"></div>
+    </div>
+    <div class="bot-panel" id="bot-2">
+      <div class="bot-name">--</div>
+      <div class="bot-hand-size"></div>
+      <div class="bot-books"></div>
+    </div>
+  </div>
+
+  <div id="human-area">
+    <div id="hand-section">
+      <div id="hand-label">Your hand:</div>
+      <div id="hand-cards"></div>
+    </div>
+
+    <div id="ask-section">
+      <span>Ask:</span>
+      <button class="target-btn" id="target-1" data-idx="1" disabled>--</button>
+      <button class="target-btn" id="target-2" data-idx="2" disabled>--</button>
+      <button class="target-btn" id="target-3" data-idx="3" disabled>--</button>
+    </div>
+
+    <div id="books-section">
+      Your books: <span id="human-books">--</span>
+    </div>
+
+    <button id="draw-btn" style="display:none">Go Fish - Draw a card</button>
+  </div>
+
+  <div id="game-over">
+    <div id="game-over-box">
+      <h2 id="game-over-title"></h2>
+      <div id="final-scores"></div>
+      <button id="play-again-btn">Play Again</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import init, { version, new_human_vs_bots_game, get_state, act, step_bot }
+      from './pkg/gfarena0_web.js';
+
+    // ── State ────────────────────────────────────────────────────────────────
+
+    let state = null;
+    let selectedRank = null;  // rank object { index, weight, value } or null
+    let botLoopTimer = null;
+    const BOT_DELAY = new URLSearchParams(location.search).has('fast') ? 0 : 150;
+
+    // ── Bootstrap ────────────────────────────────────────────────────────────
+
+    async function main() {
+      await init();
+      document.getElementById('sc-version').textContent = 'gfarena0 v' + version();
+      document.getElementById('new-game-btn').addEventListener('click', startGame);
+      document.getElementById('draw-btn').addEventListener('click', onDraw);
+      document.getElementById('play-again-btn').addEventListener('click', startGame);
+      document.querySelectorAll('.target-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          onAsk(parseInt(btn.dataset.idx, 10));
+        });
+      });
+      startGame();
+    }
+
+    // ── Game lifecycle ────────────────────────────────────────────────────────
+
+    function startGame() {
+      if (botLoopTimer) { clearTimeout(botLoopTimer); botLoopTimer = null; }
+      selectedRank = null;
+      document.getElementById('game-over').style.display = 'none';
+      var json = new_human_vs_bots_game('Standard', 'You', 3, Date.now());
+      state = JSON.parse(json);
+      if (state.error) { setStatus('Error: ' + state.error); return; }
+      setStatus('Game started - your turn!');
+      render();
+      scheduleLoop();
+    }
+
+    // ── Game loop ────────────────────────────────────────────────────────────
+
+    function scheduleLoop() {
+      state = JSON.parse(get_state());
+
+      if (state.phase === 'GameOver') {
+        render();
+        showGameOver();
+        return;
+      }
+
+      if (state.current_player === 0) {
+        render();
+        return;
+      }
+
+      render();
+      if (BOT_DELAY === 0) {
+        try {
+          stepBot();  // fast mode: run synchronously, no timer
+        } catch (e) {
+          console.error('sync bot error:', e);
+          botLoopTimer = setTimeout(stepBot, 50);  // fall back to async
+        }
+      } else {
+        botLoopTimer = setTimeout(stepBot, BOT_DELAY);
+      }
+    }
+
+    function stepBot() {
+      var result = JSON.parse(step_bot());
+      if (!result.done) {
+        state = JSON.parse(get_state());
+        setStatus(eventToStr(result.event, state.players));
+        render();
+      }
+      scheduleLoop();
+    }
+
+    // ── Human actions ────────────────────────────────────────────────────────
+
+    function onAsk(targetIdx) {
+      if (!selectedRank) return;
+      var json = act(JSON.stringify({ Ask: { target: targetIdx, rank: selectedRank } }));
+      var event = JSON.parse(json);
+      if (event.error) { setStatus('Error: ' + event.error); return; }
+      selectedRank = null;
+      state = JSON.parse(get_state());
+      setStatus(eventToStr(event, state.players));
+      scheduleLoop();
+    }
+
+    function onDraw() {
+      var json = act('"Draw"');
+      var event = JSON.parse(json);
+      if (event.error) { setStatus('Error: ' + event.error); return; }
+      state = JSON.parse(get_state());
+      setStatus(eventToStr(event, state.players));
+      scheduleLoop();
+    }
+
+    // ── Render ───────────────────────────────────────────────────────────────
+
+    function render() {
+      if (!state) return;
+
+      document.getElementById('sc-draw-pile').textContent = state.draw_pile_size;
+
+      var isHumanTurn = (state.current_player === 0);
+      var isWaitingForDraw = (state.phase === 'WaitingForDraw');
+
+      for (var i = 1; i <= 3; i++) {
+        var p = state.players[i];
+        var panel = document.getElementById('bot-' + (i - 1));
+        panel.querySelector('.bot-name').textContent = p.name;
+        panel.querySelector('.bot-hand-size').textContent = '✋ ' + p.hand_size;
+        panel.querySelector('.bot-books').textContent =
+          p.completed_book_ranks.length ? p.completed_book_ranks.join('  ') : '--';
+        if (state.current_player === i) {
+          panel.classList.add('active-turn');
+        } else {
+          panel.classList.remove('active-turn');
+        }
+      }
+
+      document.getElementById('hand-section').style.display =
+        (isHumanTurn && !isWaitingForDraw) ? 'block' : 'none';
+      document.getElementById('ask-section').style.display =
+        (isHumanTurn && !isWaitingForDraw) ? 'flex' : 'none';
+      document.getElementById('draw-btn').style.display =
+        (isHumanTurn && isWaitingForDraw) ? 'block' : 'none';
+
+      if (isHumanTurn && !isWaitingForDraw) {
+        renderHand(state.players[0].hand);
+        for (var j = 1; j <= 3; j++) {
+          var btn = document.getElementById('target-' + j);
+          btn.textContent = state.players[j].name;
+          btn.disabled = !selectedRank;
+        }
+      }
+
+      var human = state.players[0];
+      document.getElementById('human-books').textContent =
+        human.completed_book_ranks.length
+          ? human.completed_book_ranks.join('  ')
+          : '--';
+    }
+
+    function renderHand(hand) {
+      var container = document.getElementById('hand-cards');
+      container.textContent = '';  // clear children safely
+      if (!hand) return;
+
+      // Group cards by rank index (hand is a JSON array of card objects)
+      var groups = {};
+      for (var i = 0; i < hand.length; i++) {
+        var card = hand[i];
+        var idx = card.rank.index;
+        if (!groups[idx]) groups[idx] = { rank: card.rank, count: 0 };
+        groups[idx].count++;
+      }
+
+      // Sort highest weight first (A, K, Q, ... 2)
+      var sorted = Object.values(groups).sort(function(a, b) {
+        return b.rank.weight - a.rank.weight;
+      });
+
+      sorted.forEach(function(item) {
+        var btn = document.createElement('button');
+        btn.className = 'rank-btn';
+        if (selectedRank && selectedRank.index === item.rank.index) {
+          btn.classList.add('selected');
+        }
+        btn.textContent = item.rank.index + ' x' + item.count;
+        btn.addEventListener('click', function() {
+          selectedRank = item.rank;
+          renderHand(hand);
+          document.querySelectorAll('.target-btn').forEach(function(b) {
+            b.disabled = false;
+          });
+        });
+        container.appendChild(btn);
+      });
+    }
+
+    // ── Game over ─────────────────────────────────────────────────────────────
+
+    function showGameOver() {
+      var winner = state.winner;
+      var title = document.getElementById('game-over-title');
+      if (winner !== null) {
+        var name = (state.players[winner] && state.players[winner].name)
+          ? state.players[winner].name
+          : ('Player ' + winner);
+        title.textContent = (name === 'You') ? 'You win!' : (name + ' wins!');
+      } else {
+        title.textContent = "It's a tie!";
+      }
+
+      var finalScores = document.getElementById('final-scores');
+      finalScores.textContent = '';
+      state.players.forEach(function(p) {
+        var div = document.createElement('div');
+        div.textContent = p.name + ': ' + p.books + ' book' + (p.books !== 1 ? 's' : '');
+        finalScores.appendChild(div);
+      });
+
+      document.getElementById('game-over').style.display = 'flex';
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    function eventToStr(event, players) {
+      if (!event) return '';
+      function n(i) {
+        return (players[i] && players[i].name) ? players[i].name : ('Player ' + i);
+      }
+      if (event.GoFish) {
+        return 'Go Fish! ' + n(event.GoFish.player) + ' must draw.';
+      }
+      if (event.Gave) {
+        var plural = event.Gave.count !== 1 ? 's' : '';
+        return n(event.Gave.from) + ' gives ' + event.Gave.count + ' ' + event.Gave.rank + plural
+          + ' to ' + n(event.Gave.to) + '.';
+      }
+      if (event.Drew) {
+        return n(event.Drew.player) + ' draws a card'
+          + (event.Drew.matched ? ' - matched!' : '') + '.';
+      }
+      if (event.Book) {
+        return n(event.Book.player) + ' completes a book of ' + event.Book.rank + 's!';
+      }
+      if (event.GameOver) {
+        return event.GameOver.winner !== null
+          ? n(event.GameOver.winner) + ' wins!'
+          : "It's a tie!";
+      }
+      if (event.Asked) {
+        return n(event.Asked.asker) + ' asks ' + n(event.Asked.target)
+          + ' for ' + event.Asked.rank + 's.';
+      }
+      return '';
+    }
+
+    function setStatus(msg) {
+      document.getElementById('status-msg').textContent = msg;
+    }
+
+    main().catch(function(err) {
+      console.error('Fatal init error:', err);
+      document.getElementById('status-msg').textContent = 'Failed to load: ' + err.message;
+    });
+  </script>
+</body>
+</html>
