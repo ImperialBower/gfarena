@@ -123,6 +123,12 @@
       border-color: #f0d060;
       transform: translateY(-6px);
     }
+    #hand-cards.inactive .card-display {
+      opacity: 0.55;
+      cursor: default;
+      pointer-events: none;
+      transform: none;
+    }
 
     /* Book cards — one per completed set */
     .book-card {
@@ -272,7 +278,7 @@
   </div>
 
   <script type="module">
-    import init, { version, new_human_vs_bots_game, get_state, act, step_bot }
+    import init, { version, new_human_vs_bots_game, get_human_state, act, step_bot }
       from './pkg/gfarena0_web.js';
 
     // ── State ────────────────────────────────────────────────────────────────
@@ -280,7 +286,7 @@
     let state = null;
     let selectedRank = null;  // rank object { index, weight, value } or null
     let botLoopTimer = null;
-    const BOT_DELAY = new URLSearchParams(location.search).has('fast') ? 0 : 150;
+    const BOT_DELAY = new URLSearchParams(location.search).has('fast') ? 0 : 2000;
 
     // ── Bootstrap ────────────────────────────────────────────────────────────
 
@@ -315,7 +321,7 @@
     // ── Game loop ────────────────────────────────────────────────────────────
 
     function scheduleLoop() {
-      state = JSON.parse(get_state());
+      state = JSON.parse(get_human_state());
 
       if (state.phase === 'GameOver') {
         render();
@@ -344,8 +350,8 @@
     function stepBot() {
       var result = JSON.parse(step_bot());
       if (!result.done) {
-        state = JSON.parse(get_state());
-        setStatus(eventToStr(result.event, state.players));
+        state = JSON.parse(get_human_state());
+        setStatus(botActionStr(result.player, result.action, result.event, state.players));
         render();
       }
       scheduleLoop();
@@ -359,7 +365,7 @@
       var event = JSON.parse(json);
       if (event.error) { setStatus('Error: ' + event.error); return; }
       selectedRank = null;
-      state = JSON.parse(get_state());
+      state = JSON.parse(get_human_state());
       setStatus(eventToStr(event, state.players));
       scheduleLoop();
     }
@@ -368,7 +374,7 @@
       var json = act('"Draw"');
       var event = JSON.parse(json);
       if (event.error) { setStatus('Error: ' + event.error); return; }
-      state = JSON.parse(get_state());
+      state = JSON.parse(get_human_state());
       setStatus(eventToStr(event, state.players));
       scheduleLoop();
     }
@@ -402,15 +408,20 @@
         }
       }
 
-      document.getElementById('hand-section').style.display =
-        (isHumanTurn && !isWaitingForDraw) ? 'block' : 'none';
+      document.getElementById('hand-section').style.display = 'block';
       document.getElementById('ask-section').style.display =
         (isHumanTurn && !isWaitingForDraw) ? 'flex' : 'none';
       document.getElementById('draw-btn').style.display =
         (isHumanTurn && isWaitingForDraw) ? 'block' : 'none';
 
+      var handCards = document.getElementById('hand-cards');
+      if (!isHumanTurn || isWaitingForDraw) {
+        handCards.classList.add('inactive');
+      } else {
+        handCards.classList.remove('inactive');
+      }
+      renderHand(state.players[0].hand);
       if (isHumanTurn && !isWaitingForDraw) {
-        renderHand(state.players[0].hand);
         for (var j = 1; j <= 3; j++) {
           var btn = document.getElementById('target-' + j);
           btn.textContent = state.players[j].name;
@@ -514,6 +525,20 @@
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    function botActionStr(player, action, event, players) {
+      function n(i) {
+        return (players[i] && players[i].name) ? players[i].name : ('Player ' + i);
+      }
+      var prefix = '';
+      if (action && action.Ask) {
+        var rankLabel = action.Ask.rank.index === 'T' ? '10' : action.Ask.rank.index;
+        prefix = n(player) + ' asks ' + n(action.Ask.target) + ' for ' + rankLabel + 's';
+      }
+      var suffix = eventToStr(event, players);
+      if (prefix && suffix) return prefix + ' → ' + suffix;
+      return suffix || prefix;
+    }
 
     function eventToStr(event, players) {
       if (!event) return '';

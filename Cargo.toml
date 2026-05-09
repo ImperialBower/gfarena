@@ -12,3 +12,6 @@ crate-type = ["cdylib"]
 
 [dependencies]
 gfcore = { version = "0.0.1", features = ["wasm", "history"] }
+
+[patch.crates-io]
+gfcore = { path = "../gfcore" }

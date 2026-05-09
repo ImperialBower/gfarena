@@ -272,8 +272,6 @@ dependencies = [
 [[package]]
 name = "gfcore"
 version = "0.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f01a2b983c6522998bd55cbf3b558fea790894062b68237051384e148894f41"
 dependencies = [
  "cardpack",
  "console_error_panic_hook",

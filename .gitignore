@@ -14,5 +14,6 @@ target
 /www/pkg
 /node_modules
 /test-results
-/playwright-report
 /.claude 
+/.playwright-*/
+/tmp/
