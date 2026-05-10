@@ -264,7 +264,7 @@ dependencies = [
 
 [[package]]
 name = "gfarena0-web"
-version = "0.0.5"
+version = "0.0.6"
 dependencies = [
  "gfcore",
  "wasm-bindgen",
@@ -272,8 +272,7 @@ dependencies = [
 
 [[package]]
 name = "gfcore"
-version = "0.0.2"
-source = "git+https://github.com/ImperialBower/gfcore#b09a52c7c6d120553f0e3d0a6da592fb80eccdb6"
+version = "0.0.4"
 dependencies = [
  "cardpack",
  "console_error_panic_hook",
