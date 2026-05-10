@@ -273,6 +273,7 @@ dependencies = [
 [[package]]
 name = "gfcore"
 version = "0.0.4"
+source = "git+https://github.com/ImperialBower/gfcore#6b4caa9a3bd401ad4775cc461b6f4303c50b5ac4"
 dependencies = [
  "cardpack",
  "console_error_panic_hook",
