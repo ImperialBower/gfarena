@@ -745,6 +745,9 @@
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
+    // Returns the third-person form for non-"You" subjects, base form for "You".
+    function conj(subject, base, third) { return subject === 'You' ? base : third; }
+
     function botActionStr(player, action, event, players) {
       function n(i) {
         return (players[i] && players[i].name) ? players[i].name : ('Player ' + i);
@@ -752,7 +755,8 @@
       var prefix = '';
       if (action && action.Ask) {
         var rankLabel = action.Ask.rank.index === 'T' ? '10' : action.Ask.rank.index;
-        prefix = n(player) + ' asks ' + n(action.Ask.target) + ' for ' + rankLabel + 's';
+        var asker = n(player);
+        prefix = asker + ' ' + conj(asker, 'ask', 'asks') + ' ' + n(action.Ask.target) + ' for ' + rankLabel + 's';
       }
       var suffix = eventToStr(event, players);
       if (prefix && suffix) return prefix + ' → ' + suffix;
@@ -768,24 +772,29 @@
         return 'Go Fish! ' + n(event.GoFish.player) + ' must draw.';
       }
       if (event.Gave) {
+        var giver = n(event.Gave.from);
         var plural = event.Gave.count !== 1 ? 's' : '';
-        return n(event.Gave.from) + ' gives ' + event.Gave.count + ' ' + event.Gave.rank + plural
+        return giver + ' ' + conj(giver, 'give', 'gives') + ' ' + event.Gave.count + ' ' + event.Gave.rank + plural
           + ' to ' + n(event.Gave.to) + '.';
       }
       if (event.Drew) {
-        return n(event.Drew.player) + ' draws a card'
+        var drawer = n(event.Drew.player);
+        return drawer + ' ' + conj(drawer, 'draw', 'draws') + ' a card'
           + (event.Drew.matched ? ' - matched!' : '') + '.';
       }
       if (event.Book) {
-        return n(event.Book.player) + ' completes a book of ' + event.Book.rank + 's!';
+        var booker = n(event.Book.player);
+        return booker + ' ' + conj(booker, 'complete', 'completes') + ' a book of ' + event.Book.rank + 's!';
       }
       if (event.GameOver) {
-        return event.GameOver.winner !== null
-          ? n(event.GameOver.winner) + ' wins!'
+        var winner = event.GameOver.winner !== null ? n(event.GameOver.winner) : null;
+        return winner !== null
+          ? winner + ' ' + conj(winner, 'win', 'wins') + '!'
           : "It's a tie!";
       }
       if (event.Asked) {
-        return n(event.Asked.asker) + ' asks ' + n(event.Asked.target)
+        var asker = n(event.Asked.asker);
+        return asker + ' ' + conj(asker, 'ask', 'asks') + ' ' + n(event.Asked.target)
           + ' for ' + event.Asked.rank + 's.';
       }
       return '';
