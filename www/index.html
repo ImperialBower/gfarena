@@ -7,6 +7,9 @@
   <title>gfarena0 - Go Fish</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&display=swap" rel="stylesheet">
   <link rel="apple-touch-icon" href="icon-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -233,9 +236,115 @@
     }
     footer a { color: #555; text-decoration: none; }
     footer a:hover { color: #888; }
+
+    /* ── Game Header ──────────────────────────────────── */
+    #game-header {
+      width: 100%;
+      padding: 28px 24px 34px;
+      text-align: center;
+      background:
+        radial-gradient(ellipse 110% 90% at 50% -15%, rgba(0,110,185,0.32) 0%, transparent 62%),
+        linear-gradient(180deg, #010a16 0%, #051624 55%, #0d0d1a 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    #game-header::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #1a6a9a 30%, #48b8d8 50%, #1a6a9a 70%, transparent);
+    }
+    #game-header::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #0a3a5a 30%, #1a6080 50%, #0a3a5a 70%, transparent);
+    }
+    .hdr-suits {
+      font-size: 11px;
+      letter-spacing: 14px;
+      color: #1e5070;
+      margin-bottom: 14px;
+      padding-left: 14px;
+    }
+    .hdr-title {
+      font-family: 'Cinzel', Georgia, 'Times New Roman', serif;
+      font-size: clamp(30px, 11vw, 92px);
+      font-weight: 900;
+      letter-spacing: 0.22em;
+      background: linear-gradient(135deg, #b88a20 0%, #f5e5a0 22%, #f0d060 45%, #f5e5a0 68%, #b88a20 100%);
+      background-size: 300% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.05;
+      margin: 0;
+      padding-left: 0.22em;
+      animation: gold-shimmer 9s ease-in-out infinite;
+    }
+    .hdr-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+    .hdr-emoji {
+      font-size: clamp(24px, 6vw, 52px);
+      line-height: 1;
+      -webkit-text-fill-color: initial;
+      background: none;
+    }
+    @keyframes gold-shimmer {
+      0%, 100% { background-position: 0% center; }
+      50% { background-position: 100% center; }
+    }
+    .hdr-rule {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 200px;
+      margin: 0 auto 12px;
+    }
+    .hdr-rule::before,
+    .hdr-rule::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+    }
+    .hdr-rule::before { background: linear-gradient(90deg, transparent, #1a5878); }
+    .hdr-rule::after  { background: linear-gradient(90deg, #1a5878, transparent); }
+    .hdr-rule-gem { color: #1a5878; font-size: 11px; }
+    .hdr-tagline {
+      font-size: 10px;
+      letter-spacing: 5px;
+      text-transform: uppercase;
+      color: #1e5070;
+      padding-left: 5px;
+      margin: 0;
+    }
+    @media (max-width: 480px) {
+      #game-header { padding: 18px 16px 24px; }
+      .hdr-suits { letter-spacing: 8px; padding-left: 8px; }
+      .hdr-tagline { letter-spacing: 3px; padding-left: 3px; }
+    }
   </style>
 </head>
 <body>
+
+  <header id="game-header">
+    <div class="hdr-suits">♠ &ensp; ♥ &ensp; ♦ &ensp; ♣</div>
+    <div class="hdr-title-row">
+      <span class="hdr-emoji">🎣</span>
+      <h1 class="hdr-title">Go Fish</h1>
+      <span class="hdr-emoji">🐟</span>
+    </div>
+    <div class="hdr-rule"><span class="hdr-rule-gem">♦</span></div>
+    <p class="hdr-tagline">The Classic Card Game</p>
+  </header>
 
   <div id="score-bar">
     <a id="sc-version" href="https://github.com/ImperialBower/gfarena" target="_blank" rel="noopener">gfarena0</a>
