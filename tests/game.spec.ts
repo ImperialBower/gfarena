@@ -144,6 +144,16 @@ test.describe('gfarena0-web smoke tests', () => {
     expect(auditText).toMatch(/[✓⚠]/);
   });
 
+  test('download-btn stays enabled after Play Again', async ({ page }) => {
+    test.setTimeout(120_000);
+    await playFastGameToCompletion(page);
+    await expect(page.locator('#game-over')).toBeVisible();
+    await expect(page.locator('#download-btn')).toBeEnabled();
+    await page.locator('#play-again-btn').click();
+    await page.waitForSelector('#hand-cards .card-display', { timeout: 15_000 });
+    await expect(page.locator('#download-btn')).toBeEnabled();
+  });
+
   test('clicking download-btn triggers a yaml file download', async ({ page }) => {
     test.setTimeout(60_000);
     await playFastGameToCompletion(page);

@@ -429,7 +429,7 @@
 
   <script type="module">
     import init, { arena_version, new_human_vs_bots_game, get_human_state, act, step_bot,
-                   collect_game, clear_collection, get_collection_yaml, audit_current_game }
+                   collect_game, get_collection_yaml, audit_current_game }
       from './pkg/gfarena0_web.js';
 
     // ── State ────────────────────────────────────────────────────────────────
@@ -480,8 +480,6 @@
       if (botLoopTimer) { clearTimeout(botLoopTimer); botLoopTimer = null; }
       selectedRank = null;
       document.getElementById('game-over').style.display = 'none';
-      clear_collection();
-      document.getElementById('download-btn').disabled = true;
       var json = new_human_vs_bots_game('Standard', 'You', 3, Date.now());
       state = JSON.parse(json);
       if (state.error) { setStatus('Error: ' + state.error); return; }
