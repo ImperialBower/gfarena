@@ -56,6 +56,17 @@
       cursor: pointer;
     }
     #new-game-btn:hover { background: #243954; }
+    #download-btn {
+      font-size: 11px;
+      padding: 2px 10px;
+      background: #1a2a1a;
+      border: 1px solid #3a6a3a;
+      color: #aaddaa;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #download-btn:hover:not(:disabled) { background: #223322; }
+    #download-btn:disabled { opacity: 0.35; cursor: default; }
 
     /* Status line */
     #status-msg {
@@ -206,6 +217,7 @@
       align-items: center;
       justify-content: center;
       z-index: 10;
+      pointer-events: none;
     }
     #game-over-box {
       background: #1a1a2e;
@@ -216,6 +228,7 @@
       display: flex;
       flex-direction: column;
       gap: 16px;
+      pointer-events: auto;
     }
     #game-over-title { font-size: 28px; color: #f0d060; }
     #final-scores { font-size: 14px; color: #aaa; line-height: 1.8; }
@@ -229,6 +242,12 @@
       cursor: pointer;
     }
     #play-again-btn:hover { background: #243954; }
+    #audit-result {
+      font-size: 12px;
+      min-height: 1em;
+      text-align: left;
+    }
+    #audit-result ul { margin: 4px 0 0 16px; }
 
     footer {
       margin-top: auto;
@@ -351,6 +370,7 @@
     <a id="sc-version" href="https://github.com/ImperialBower/gfarena" target="_blank" rel="noopener">gfarena0</a>
     <span>Draw pile: <strong id="sc-draw-pile">--</strong></span>
     <button id="new-game-btn">New Game</button>
+    <button id="download-btn" disabled>Download History</button>
   </div>
 
   <div id="status-msg">Initialising...</div>
@@ -398,6 +418,7 @@
     <div id="game-over-box">
       <h2 id="game-over-title"></h2>
       <div id="final-scores"></div>
+      <div id="audit-result"></div>
       <button id="play-again-btn">Play Again</button>
     </div>
   </div>
@@ -407,7 +428,8 @@
   </footer>
 
   <script type="module">
-    import init, { arena_version, new_human_vs_bots_game, get_human_state, act, step_bot }
+    import init, { arena_version, new_human_vs_bots_game, get_human_state, act, step_bot,
+                   collect_game, clear_collection, get_collection_yaml, audit_current_game }
       from './pkg/gfarena0_web.js';
 
     // ── State ────────────────────────────────────────────────────────────────
@@ -425,6 +447,25 @@
       document.getElementById('new-game-btn').addEventListener('click', startGame);
       document.getElementById('draw-btn').addEventListener('click', onDraw);
       document.getElementById('play-again-btn').addEventListener('click', startGame);
+      document.getElementById('download-btn').addEventListener('click', function() {
+        var yaml = get_collection_yaml();
+        try {
+          var parsed = JSON.parse(yaml);
+          if (parsed && parsed.error) {
+            console.error('get_collection_yaml error:', parsed.error);
+            return;
+          }
+        } catch (_) {
+          // yaml is real YAML (not JSON), proceed with download
+        }
+        var blob = new Blob([yaml], { type: 'application/yaml' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'gf-history-' + Math.floor(Date.now() / 1000) + '.yaml';
+        a.click();
+        URL.revokeObjectURL(url);
+      });
       document.querySelectorAll('.target-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
           onAsk(parseInt(btn.dataset.idx, 10));
@@ -439,6 +480,8 @@
       if (botLoopTimer) { clearTimeout(botLoopTimer); botLoopTimer = null; }
       selectedRank = null;
       document.getElementById('game-over').style.display = 'none';
+      clear_collection();
+      document.getElementById('download-btn').disabled = true;
       var json = new_human_vs_bots_game('Standard', 'You', 3, Date.now());
       state = JSON.parse(json);
       if (state.error) { setStatus('Error: ' + state.error); return; }
@@ -659,10 +702,51 @@
         finalScores.appendChild(div);
       });
 
+      var auditEl = document.getElementById('audit-result');
+      auditEl.textContent = '';
+      try {
+        var collectResult = JSON.parse(collect_game());
+        if (collectResult.error) {
+          console.error('collect_game error:', collectResult.error);
+        } else {
+          document.getElementById('download-btn').disabled = false;
+        }
+
+        var audit = JSON.parse(audit_current_game());
+        if (audit.error) {
+          auditEl.textContent = 'Audit unavailable.';
+        } else if (audit.is_consistent) {
+          var ok = document.createElement('span');
+          ok.style.color = '#4a9a4a';
+          ok.textContent = '✓ Game record is consistent';
+          auditEl.appendChild(ok);
+        } else {
+          var header = document.createElement('div');
+          header.style.color = '#cc4444';
+          header.textContent = '⚠ Audit violations:';
+          auditEl.appendChild(header);
+          var list = document.createElement('ul');
+          list.style.fontSize = '12px';
+          list.style.textAlign = 'left';
+          audit.violations.forEach(function(v) {
+            var li = document.createElement('li');
+            li.textContent = v;
+            list.appendChild(li);
+          });
+          auditEl.appendChild(list);
+        }
+      } catch(e) {
+        console.error('audit error:', e);
+        auditEl.textContent = 'Audit unavailable.';
+      }
+
       document.getElementById('game-over').style.display = 'flex';
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    // Returns the third-person form for non-"You" subjects, base form for "You".
+    function conj(subject, base, third) { return subject === 'You' ? base : third; }
 
     function botActionStr(player, action, event, players) {
       function n(i) {
@@ -671,7 +755,8 @@
       var prefix = '';
       if (action && action.Ask) {
         var rankLabel = action.Ask.rank.index === 'T' ? '10' : action.Ask.rank.index;
-        prefix = n(player) + ' asks ' + n(action.Ask.target) + ' for ' + rankLabel + 's';
+        var asker = n(player);
+        prefix = asker + ' ' + conj(asker, 'ask', 'asks') + ' ' + n(action.Ask.target) + ' for ' + rankLabel + 's';
       }
       var suffix = eventToStr(event, players);
       if (prefix && suffix) return prefix + ' → ' + suffix;
@@ -687,24 +772,29 @@
         return 'Go Fish! ' + n(event.GoFish.player) + ' must draw.';
       }
       if (event.Gave) {
+        var giver = n(event.Gave.from);
         var plural = event.Gave.count !== 1 ? 's' : '';
-        return n(event.Gave.from) + ' gives ' + event.Gave.count + ' ' + event.Gave.rank + plural
+        return giver + ' ' + conj(giver, 'give', 'gives') + ' ' + event.Gave.count + ' ' + event.Gave.rank + plural
           + ' to ' + n(event.Gave.to) + '.';
       }
       if (event.Drew) {
-        return n(event.Drew.player) + ' draws a card'
+        var drawer = n(event.Drew.player);
+        return drawer + ' ' + conj(drawer, 'draw', 'draws') + ' a card'
           + (event.Drew.matched ? ' - matched!' : '') + '.';
       }
       if (event.Book) {
-        return n(event.Book.player) + ' completes a book of ' + event.Book.rank + 's!';
+        var booker = n(event.Book.player);
+        return booker + ' ' + conj(booker, 'complete', 'completes') + ' a book of ' + event.Book.rank + 's!';
       }
       if (event.GameOver) {
-        return event.GameOver.winner !== null
-          ? n(event.GameOver.winner) + ' wins!'
+        var winner = event.GameOver.winner !== null ? n(event.GameOver.winner) : null;
+        return winner !== null
+          ? winner + ' ' + conj(winner, 'win', 'wins') + '!'
           : "It's a tie!";
       }
       if (event.Asked) {
-        return n(event.Asked.asker) + ' asks ' + n(event.Asked.target)
+        var asker = n(event.Asked.asker);
+        return asker + ' ' + conj(asker, 'ask', 'asks') + ' ' + n(event.Asked.target)
           + ' for ' + event.Asked.rank + 's.';
       }
       return '';

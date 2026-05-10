@@ -1,6 +1,42 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 
 test.describe('gfarena0-web smoke tests', () => {
+
+  async function playFastGameToCompletion(page: Page) {
+    await page.goto('/?fast');
+    await page.waitForSelector('#hand-cards .card-display', { timeout: 15_000 });
+    for (let move = 0; move < 5000; move++) {
+      const targetIdx = (move % 3) + 1;
+      const cardIdx   = Math.floor(move / 3) % 7;
+      const action = await page.evaluate(([tIdx, cIdx]: number[]) => {
+        if ((document.getElementById('game-over') as HTMLElement | null)?.style.display === 'flex') return 'over';
+        const draw = document.getElementById('draw-btn') as HTMLButtonElement | null;
+        if (draw?.style.display === 'block') { draw.click(); return 'draw'; }
+        const askSection = document.getElementById('ask-section') as HTMLElement | null;
+        const cards = document.querySelectorAll('#hand-cards .card-display');
+        const card = cards[cIdx % Math.max(cards.length, 1)] as HTMLElement | null;
+        if (askSection?.style.display === 'flex' && card) {
+          card.click();
+          const t = document.getElementById('target-' + tIdx) as HTMLButtonElement | null;
+          if (t && !t.disabled) t.click();
+          return 'ask';
+        }
+        return 'wait';
+      }, [targetIdx, cardIdx]);
+      if (action === 'over') break;
+      if (action === 'wait') {
+        await page.waitForFunction(
+          () => {
+            const a = (document.getElementById('ask-section') as HTMLElement | null)?.style.display === 'flex';
+            const d = (document.getElementById('draw-btn') as HTMLElement | null)?.style.display === 'block';
+            const o = (document.getElementById('game-over') as HTMLElement | null)?.style.display === 'flex';
+            return a || d || o;
+          },
+          { polling: 100, timeout: 10_000 }
+        );
+      }
+    }
+  }
 
   test('page loads and version is shown', async ({ page }) => {
     await page.goto('/');
@@ -66,58 +102,10 @@ test.describe('gfarena0-web smoke tests', () => {
   test('game reaches GameOver and shows overlay', async ({ page }) => {
     test.setTimeout(60_000);
 
-    // Capture browser-side errors (e.g. from the synchronous bot fallback).
     const jsErrors: string[] = [];
     page.on('pageerror', err => jsErrors.push(err.message));
 
-    // ?fast → BOT_DELAY=0 → bots run synchronously inside scheduleLoop.
-    // Each evaluate call checks state AND performs the action atomically so
-    // there is no CDP round-trip between the rank click and the target click.
-    await page.goto('/?fast');
-    await page.waitForSelector('#hand-cards .card-display', { timeout: 15_000 });
-
-    let askCount = 0, drawCount = 0, waitCount = 0;
-    for (let move = 0; move < 5000; move++) {
-      // Rotate through both cards and targets so the human tries every rank
-      // against every bot, avoiding an infinite GoFish on one unlucky rank.
-      const targetIdx = (move % 3) + 1;
-      const cardIdx   = Math.floor(move / 3) % 7;  // change card every 3 moves
-      const action = await page.evaluate(([tIdx, cIdx]: number[]) => {
-        if ((document.getElementById('game-over') as HTMLElement | null)?.style.display === 'flex') return 'over';
-
-        const draw = document.getElementById('draw-btn') as HTMLButtonElement | null;
-        if (draw?.style.display === 'block') { draw.click(); return 'draw'; }
-
-        // ask-section is flex only when it is the human's ask turn
-        const askSection = document.getElementById('ask-section') as HTMLElement | null;
-        const cards = document.querySelectorAll('#hand-cards .card-display');
-        const card = cards[cIdx % Math.max(cards.length, 1)] as HTMLElement | null;
-        if (askSection?.style.display === 'flex' && card) {
-          card.click();
-          const t = document.getElementById('target-' + tIdx) as HTMLButtonElement | null;
-          if (t && !t.disabled) t.click();
-          return 'ask';
-        }
-
-        return 'wait';
-      }, [targetIdx, cardIdx]);
-
-      if (action === 'over') break;
-      if (action === 'ask') { askCount++; continue; }
-      if (action === 'draw') { drawCount++; continue; }
-
-      // 'wait' means bot turns are still running asynchronously (fallback path).
-      waitCount++;
-      await page.waitForFunction(
-        () => {
-          const a = (document.getElementById('ask-section') as HTMLElement | null)?.style.display === 'flex';
-          const d = (document.getElementById('draw-btn') as HTMLElement | null)?.style.display === 'block';
-          const o = (document.getElementById('game-over') as HTMLElement | null)?.style.display === 'flex';
-          return a || d || o;
-        },
-        { polling: 100, timeout: 10_000 }
-      );
-    }
+    await playFastGameToCompletion(page);
 
     // Diagnostic snapshot if game didn't finish.
     const snap = await page.evaluate(() => {
@@ -132,13 +120,39 @@ test.describe('gfarena0-web smoke tests', () => {
         status:     (document.getElementById('status-msg') as HTMLElement | null)?.textContent,
       };
     });
-    console.log(`moves: ask=${askCount} draw=${drawCount} wait=${waitCount} total=${askCount+drawCount+waitCount}`, snap);
+    console.log('diagnostic snap', snap);
 
     if (jsErrors.length) console.warn('Browser JS errors during game:', jsErrors);
 
     await expect(page.locator('#game-over')).toBeVisible();
     const title = await page.textContent('#game-over-title');
     expect(title!.length).toBeGreaterThan(3);
+  });
+
+  test('download-btn is disabled on load', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForSelector('#sc-version', { timeout: 10_000 });
+    await expect(page.locator('#download-btn')).toBeDisabled();
+  });
+
+  test('download-btn enabled and audit result shown after game over', async ({ page }) => {
+    test.setTimeout(60_000);
+    await playFastGameToCompletion(page);
+    await expect(page.locator('#game-over')).toBeVisible();
+    await expect(page.locator('#download-btn')).toBeEnabled();
+    const auditText = await page.locator('#audit-result').textContent();
+    expect(auditText).toMatch(/[✓⚠]/);
+  });
+
+  test('clicking download-btn triggers a yaml file download', async ({ page }) => {
+    test.setTimeout(60_000);
+    await playFastGameToCompletion(page);
+    await expect(page.locator('#game-over')).toBeVisible();
+    await expect(page.locator('#download-btn')).toBeEnabled();
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator('#download-btn').click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/^gf-history-\d+\.yaml$/);
   });
 
 });
