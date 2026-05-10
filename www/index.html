@@ -194,7 +194,8 @@
       font-size: 15px;
       cursor: pointer;
     }
-    #draw-btn:hover { background: #243954; }
+    #draw-btn:hover:not(:disabled) { background: #243954; }
+    #draw-btn:disabled { opacity: 0.35; cursor: default; }
 
     /* Game-over overlay */
     #game-over {
@@ -539,8 +540,9 @@
       document.getElementById('hand-section').style.display = 'block';
       document.getElementById('ask-section').style.display =
         (isHumanTurn && !isWaitingForDraw) ? 'flex' : 'none';
-      document.getElementById('draw-btn').style.display =
-        (isHumanTurn && isWaitingForDraw) ? 'block' : 'none';
+      var drawBtn = document.getElementById('draw-btn');
+      drawBtn.style.display = (isHumanTurn && isWaitingForDraw) ? 'block' : 'none';
+      drawBtn.disabled = (state.draw_pile_size === 0);
 
       var handCards = document.getElementById('hand-cards');
       if (!isHumanTurn || isWaitingForDraw) {
