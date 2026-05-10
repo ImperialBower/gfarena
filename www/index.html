@@ -460,6 +460,14 @@
 
       if (state.current_player === 0) {
         render();
+        if (state.phase === 'WaitingForDraw' && state.draw_pile_size === 0) {
+          var autoDelay = Math.min(BOT_DELAY, 800);
+          if (autoDelay > 0) {
+            botLoopTimer = setTimeout(onDraw, autoDelay);
+          } else {
+            onDraw();
+          }
+        }
         return;
       }
 
@@ -500,11 +508,12 @@
     }
 
     function onDraw() {
+      var wasEmpty = state.draw_pile_size === 0;
       var json = act('"Draw"');
       var event = JSON.parse(json);
       if (event.error) { setStatus('Error: ' + event.error); return; }
       state = JSON.parse(get_human_state());
-      setStatus(eventToStr(event, state.players));
+      setStatus(wasEmpty ? 'Draw pile is empty — skipping draw.' : eventToStr(event, state.players));
       scheduleLoop();
     }
 
@@ -541,8 +550,7 @@
       document.getElementById('ask-section').style.display =
         (isHumanTurn && !isWaitingForDraw) ? 'flex' : 'none';
       var drawBtn = document.getElementById('draw-btn');
-      drawBtn.style.display = (isHumanTurn && isWaitingForDraw) ? 'block' : 'none';
-      drawBtn.disabled = (state.draw_pile_size === 0);
+      drawBtn.style.display = (isHumanTurn && isWaitingForDraw && state.draw_pile_size > 0) ? 'block' : 'none';
 
       var handCards = document.getElementById('hand-cards');
       if (!isHumanTurn || isWaitingForDraw) {
