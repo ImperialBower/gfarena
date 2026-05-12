@@ -264,7 +264,7 @@ dependencies = [
 
 [[package]]
 name = "gfarena0-web"
-version = "0.0.6"
+version = "0.0.7"
 dependencies = [
  "gfcore",
  "wasm-bindgen",
@@ -272,8 +272,9 @@ dependencies = [
 
 [[package]]
 name = "gfcore"
-version = "0.0.4"
-source = "git+https://github.com/ImperialBower/gfcore#6b4caa9a3bd401ad4775cc461b6f4303c50b5ac4"
+version = "0.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "409e038b3f3bae1220c3d4a43efafc7f727d8311ea3a4432c0edd09b7e5488b8"
 dependencies = [
  "cardpack",
  "console_error_panic_hook",
@@ -1065,3 +1066,8 @@ name = "zmij"
 version = "1.0.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b8848ee67ecc8aedbaf3e4122217aff892639231befc6a1b58d29fff4c2cabaa"
+
+[[patch.unused]]
+name = "gfcore"
+version = "0.0.4"
+source = "git+https://github.com/ImperialBower/gfcore#6b4caa9a3bd401ad4775cc461b6f4303c50b5ac4"
